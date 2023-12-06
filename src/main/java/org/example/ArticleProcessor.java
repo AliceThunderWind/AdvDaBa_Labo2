@@ -63,7 +63,7 @@ public class ArticleProcessor {
             URLConnection connection = jsonUrl.openConnection();
             connection.setConnectTimeout(60000);
             connection.setReadTimeout(60000);
-            try (JsonReader jsonReader = new JsonReader(new InputStreamReader(connection.getInputStream() /*new FileInputStream(FILENAME)*/, StandardCharsets.UTF_8))) {
+            try (JsonReader jsonReader = new JsonReader(new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8))) {
                 Gson gson = new GsonBuilder().create();
                 jsonReader.beginArray();
 

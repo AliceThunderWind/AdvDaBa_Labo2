@@ -2,12 +2,14 @@ package org.example;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonSyntaxException;
 import com.google.gson.stream.JsonReader;
 import org.example.model.Article;
 import org.neo4j.driver.Driver;
 import org.neo4j.driver.Session;
 import org.neo4j.driver.SessionConfig;
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URL;
@@ -18,6 +20,8 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -29,6 +33,8 @@ public class ArticleProcessor {
     private final int BATCH_SIZE;
     private final int MAX_NODE;
     private final Driver driver;
+
+    private final ExecutorService executorService = Executors.newFixedThreadPool(10);
 
     public ArticleProcessor(int batchSize, int maxNode, Driver driver) {
         this.BATCH_SIZE = batchSize;
@@ -43,8 +49,8 @@ public class ArticleProcessor {
             // https://stackoverflow.com/questions/29657461/big-data-import-into-neo4j
             session.writeTransaction(tx -> {
                 try {
-                    tx.run("CREATE CONSTRAINT FOR (a:Article) REQUIRE a.id IS UNIQUE");
-                    tx.run("CREATE CONSTRAINT FOR (b:Author) REQUIRE b.id IS UNIQUE");
+                    tx.run("CREATE CONSTRAINT FOR (a:Article) REQUIRE a._id IS UNIQUE");
+                    tx.run("CREATE CONSTRAINT FOR (b:Author) REQUIRE b._id IS UNIQUE");
                 } catch (Exception e) {
                     tx.rollback();
                 }
@@ -64,6 +70,7 @@ public class ArticleProcessor {
             connection.setConnectTimeout(60000);
             connection.setReadTimeout(60000);
             try (JsonReader jsonReader = new JsonReader(new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8))) {
+                jsonReader.setLenient(true);
                 Gson gson = new GsonBuilder().create();
                 jsonReader.beginArray();
 
@@ -71,36 +78,56 @@ public class ArticleProcessor {
                 List<Thread> threads = new LinkedList<>();
 
                 while (jsonReader.hasNext() && totalArticles < MAX_NODE) {
-                    Article article = gson.fromJson(jsonReader, Article.class);
+                    try {
+                        Article article = gson.fromJson(jsonReader, Article.class);
 
-                    articlesBatch.add(article);
-                    ++totalArticles;
+                        if (article != null) {
+                            articlesBatch.add(article);
+                            ++totalArticles;
 
-                    if (articlesBatch.size() == BATCH_SIZE) {
-                        Thread t = new Thread(new RunnableWorker(driver, processBatch(articlesBatch)));
-                        t.start();
-                        threads.add(t);
-                        articlesBatch.clear();
+                            if (articlesBatch.size() == BATCH_SIZE) {
+                                /*Thread t = new Thread(new RunnableWorker(driver, processBatch(articlesBatch)));
+                                t.start();
+                                threads.add(t);*/
+                                executorService.submit(new RunnableWorker(driver, processBatch(articlesBatch)));
+                                articlesBatch.clear();
+                            }
+                        } else {
+                            // Log or handle the case where article is null
+                            System.out.println("Received null article. Skipping...");
+                        }
+                    } catch (JsonSyntaxException e) {
+                        e.printStackTrace();
+                        jsonReader.skipValue();
+                        // Log the JSON data causing the syntax exception
+                        System.out.println("Error parsing JSON: " + e.getMessage());
+                    } catch (Exception e) {
+                        jsonReader.skipValue();
+                        // Catch any other exceptions
+                        e.printStackTrace();
                     }
                 }
 
                 if (!articlesBatch.isEmpty()) {
-                    Thread t = new Thread(new RunnableWorker(driver, processBatch(articlesBatch)));
-                    t.start();
-                    threads.add(t);
+                    executorService.submit(new RunnableWorker(driver, processBatch(articlesBatch)));
                 }
 
                 for(Thread t : threads){
                     t.join();
                 }
 
-            } catch (IOException | InterruptedException e) {
+            } catch (IOException e) {
                 log.severe(e.getMessage());
             } finally {
+                executorService.shutdown();
+                executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
                 long endTime = System.nanoTime();
                 long elapsedTime = (endTime - startTime);
-                long convert = TimeUnit.SECONDS.convert(elapsedTime, TimeUnit.NANOSECONDS);
-                log.info("[Java] Elapsed time: " + convert + " seconds");
+                long elapsedTimeInSeconds = TimeUnit.SECONDS.convert(elapsedTime, TimeUnit.NANOSECONDS);
+                String ramEnv = System.getenv("RAM");
+                int RAM = (ramEnv != null) ? Integer.parseInt(ramEnv) : -1;
+                log.info("[Java] Results -> { \"team\": \"MailleAdvDaBa\", \"N\": " + MAX_NODE +
+                        ", \"RAM\": " + RAM + ", \"seconds\": " + elapsedTimeInSeconds + " }");
             }
         } catch (IOException e) {
             log.severe(e.getMessage());

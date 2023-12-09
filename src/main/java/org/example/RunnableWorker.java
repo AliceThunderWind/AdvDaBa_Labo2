@@ -22,10 +22,10 @@ class RunnableWorker implements Runnable {
     @Override
     public void run() {
         try (Session session = driver.session(SessionConfig.defaultConfig())) {
-            int maxRetries = 5;
-            int retries = 0;
+            int maxRetries = 20;
+            int retries = 1;
 
-            while (retries < maxRetries) {
+            while (retries <= maxRetries) {
                 try {
                     session.writeTransaction(tx -> {
                         Query articleQuery = new Query(
@@ -71,9 +71,10 @@ class RunnableWorker implements Runnable {
                     break;
                 } catch (TransientException | DeadlockDetectedException e) {
                     log.severe("[Java] Error during transaction : " + e.getMessage());
+                    log.info("Retry number " + retries);
                     retries++;
                     try {
-                        Thread.sleep(1000 * 2); // 2 seconds
+                        Thread.sleep(1000 * 10); // 10 seconds
                     } catch (InterruptedException ex) {
                         throw new RuntimeException(ex);
                     }

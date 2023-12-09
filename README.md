@@ -6,7 +6,7 @@
 
 ## Introduction
 
-The goal of this laboratory is to process a JSON file of 18Go and create nodes and relationships in Neo4j
+The goal of this laboratory is to process a 18Go JSON file and to create nodes and relationships in Neo4j, without scaling-up too much the environment loading the data and in a decent short amount of time.
 
 ## Content
 
@@ -16,10 +16,41 @@ Since the goal of this laboratory is to process with little memory, it is obviou
 
 This program is also working by batches, you will be able to set the value in the `docker-compose.yaml` as an environment variable
 
+## Results
+
+Results -> { "team": "MailleAdvDaBa", "N": 10000, "RAM": 3000, "seconds": 11 } (Batch = 500)
+
+Results -> { "team": "MailleAdvDaBa", "N": 10000, "RAM": 3000, "seconds": 12 } (Batch = 1000)
+
+Results -> { "team": "MailleAdvDaBa", "N": 20000, "RAM": 3000, "seconds": 13 } (Batch = 2000)
+
+Results -> { "team": "MailleAdvDaBa", "N": 30000, "RAM": 3000, "seconds": 15 } (Batch = 3000)
+
+Results -> { "team": "MailleAdvDaBa", "N": 50000, "RAM": 3000, "seconds": 37 } (Batch = 5000)
+
+Results -> { "team": "MailleAdvDaBa", "N": 100000, "RAM": 3000, "seconds": 74 } (Batch = 5000)
+
+Results -> { "team": "MailleAdvDaBa", "N": 100000, "RAM": 3000, "seconds": 70 } (Batch = 10000)
+
+Results -> { "team": "MailleAdvDaBa", "N": 500000, "RAM": 3000, "seconds": 355 } (Batch = 10000)
+
+Results -> { "team": "MailleAdvDaBa", "N": 1000000, "RAM": 3000, "seconds": 823 } (Batch = 10000)
+
+Results -> { "team": "MailleAdvDaBa", "N": 10000000, "RAM": 3000, "seconds": 5111 } (Batch = 10000)
+
 ## Run with Docker
 
+If you are using the image in Docker Hub, you can simply run the following command and go to the link `localhost:7474` for accessing the Neo4j browser.
+
+```bash
+docker compose up -d
 ```
-docker compose up
+
+If you want to build the image using the `Dockerfile` instead of the image from Docker Hub, simply replace `image: alicethunderwind/advdaba_app:latest` with `build: .` and run :
+
+```bash
+docker compose build
+docker compose up -d
 ```
 
 ## Run with Kubernetes / Rancher

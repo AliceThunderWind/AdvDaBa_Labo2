@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  db:
+    image: neo4j:latest
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    environment:
+      - NEO4J_AUTH=neo4j/testtest
+    deploy:
+      resources:
+        limits:
+          memory: 3g
+    networks:
+      internal:
+        ipv4_address: 10.5.0.5
+
+  app:
+    image: alicethunderwind/advdaba_app:latest
+    depends_on:
+      - db
+    networks:
+      - internal
+    environment:
+      - BATCH_SIZE=5000
+      - MAX_NODE=50000
+      - NEO4J_IP=10.5.0.5
+      - RAM=3000 # Needs to be the same as memory in Neo4j (db container)
+    deploy:
+      resources:
+        limits:
+          memory: 3g
+
+networks:
+  internal:
+    ipam:
+      driver: default
+      config:
+        - subnet: "10.5.0.0/16"

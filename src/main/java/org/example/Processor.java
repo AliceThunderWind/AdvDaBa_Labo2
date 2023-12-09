@@ -5,11 +5,11 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.stream.JsonReader;
 import org.example.model.Article;
+import org.example.model.Author;
 import org.neo4j.driver.Driver;
 import org.neo4j.driver.Session;
 import org.neo4j.driver.SessionConfig;
 
-import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URL;
@@ -79,22 +79,15 @@ public class ArticleProcessor {
 
                 while (jsonReader.hasNext() && totalArticles < MAX_NODE) {
                     try {
-                        Article article = gson.fromJson(jsonReader, Article.class);
+                        //Article article = gson.fromJson(jsonReader, Article.class);
+                        Article article = ArticleFactory.createArticle(jsonReader);
 
-                        if (article != null) {
-                            articlesBatch.add(article);
-                            ++totalArticles;
+                        articlesBatch.add(article);
+                        ++totalArticles;
 
-                            if (articlesBatch.size() == BATCH_SIZE) {
-                                /*Thread t = new Thread(new RunnableWorker(driver, processBatch(articlesBatch)));
-                                t.start();
-                                threads.add(t);*/
-                                executorService.submit(new RunnableWorker(driver, processBatch(articlesBatch)));
-                                articlesBatch.clear();
-                            }
-                        } else {
-                            // Log or handle the case where article is null
-                            System.out.println("Received null article. Skipping...");
+                        if (articlesBatch.size() == BATCH_SIZE) {
+                            executorService.submit(new RunnableWorker(driver, processBatch(articlesBatch)));
+                            articlesBatch.clear();
                         }
                     } catch (JsonSyntaxException e) {
                         e.printStackTrace();
@@ -138,6 +131,8 @@ public class ArticleProcessor {
             TimeUnit.SECONDS.sleep(10);
         }
     }
+
+
 
     private Map<String, Object> processBatch(List<Article> batch) {
         List<Map<String, Object>> articlesMap = batch.stream()

@@ -16,6 +16,17 @@ Since the goal of this laboratory is to process with little memory, it is obviou
 
 This program is also working by batches, you will be able to set the value in the `docker-compose.yaml` as an environment variable
 
+In order to increase the performance, we can use constraints to speed up the process, especially when IDs are supposed to be unique. This also allow to remove any duplicates while merging nodes :
+
+```java
+tx.run("CREATE CONSTRAINT FOR (a:Article) REQUIRE a._id IS UNIQUE");
+tx.run("CREATE CONSTRAINT FOR (b:Author) REQUIRE b._id IS UNIQUE");
+```
+
+Source : [StackOverFlow](https://stackoverflow.com/questions/29657461/big-data-import-into-neo4j)
+
+// TODO: COMPLETE THIS SECTION
+
 ## Results
 
 Results -> { "team": "MailleAdvDaBa", "N": 10000, "RAM": 3000, "seconds": 11 } (Batch = 500)

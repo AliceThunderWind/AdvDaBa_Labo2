@@ -5,7 +5,6 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.stream.JsonReader;
 import org.example.model.Article;
-import org.example.model.Author;
 import org.neo4j.driver.Driver;
 import org.neo4j.driver.Session;
 import org.neo4j.driver.SessionConfig;
@@ -17,7 +16,6 @@ import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -26,9 +24,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-public class ArticleProcessor {
+public class Processor {
 
-    private static final Logger log = Logger.getLogger(ArticleProcessor.class.getName());
+    private static final Logger log = Logger.getLogger(Processor.class.getName());
 
     private final int BATCH_SIZE;
     private final int MAX_NODE;
@@ -36,13 +34,13 @@ public class ArticleProcessor {
 
     private final ExecutorService executorService = Executors.newFixedThreadPool(10);
 
-    public ArticleProcessor(int batchSize, int maxNode, Driver driver) {
+    public Processor(int batchSize, int maxNode, Driver driver) {
         this.BATCH_SIZE = batchSize;
         this.MAX_NODE = maxNode;
         this.driver = driver;
     }
 
-    public void processArticles() throws InterruptedException {
+    public void run() throws InterruptedException {
 
         try(Session session = driver.session(SessionConfig.defaultConfig())) {
 
@@ -75,42 +73,35 @@ public class ArticleProcessor {
                 jsonReader.beginArray();
 
                 List<Article> articlesBatch = new ArrayList<>();
-                List<Thread> threads = new LinkedList<>();
 
                 while (jsonReader.hasNext() && totalArticles < MAX_NODE) {
                     try {
-                        //Article article = gson.fromJson(jsonReader, Article.class);
-                        Article article = ArticleFactory.createArticle(jsonReader);
+                        Article article = gson.fromJson(jsonReader, Article.class);
+                        //Article article = ArticleFactory.createArticle(jsonReader); // Uncomment to use the factory (needed for NumberInt parsing)
 
                         articlesBatch.add(article);
                         ++totalArticles;
 
                         if (articlesBatch.size() == BATCH_SIZE) {
-                            executorService.submit(new RunnableWorker(driver, processBatch(articlesBatch)));
+                            executorService.submit(new RunnableWorker(driver, convertListToMap(articlesBatch)));
                             articlesBatch.clear();
                         }
                     } catch (JsonSyntaxException e) {
-                        e.printStackTrace();
+                        log.severe("[Java] Error parsing JSON :" + e.getMessage());
                         jsonReader.skipValue();
-                        // Log the JSON data causing the syntax exception
-                        System.out.println("Error parsing JSON: " + e.getMessage());
                     } catch (Exception e) {
                         jsonReader.skipValue();
-                        // Catch any other exceptions
-                        e.printStackTrace();
+                        log.severe("[Java] Error occurred :" + e.getMessage());
                     }
                 }
 
+                // In case, there are Articles left in the list
                 if (!articlesBatch.isEmpty()) {
-                    executorService.submit(new RunnableWorker(driver, processBatch(articlesBatch)));
-                }
-
-                for(Thread t : threads){
-                    t.join();
+                    executorService.submit(new RunnableWorker(driver, convertListToMap(articlesBatch)));
                 }
 
             } catch (IOException e) {
-                log.severe(e.getMessage());
+                log.severe("[Java] Error occured with JSONReader: " + e.getMessage());
             } finally {
                 executorService.shutdown();
                 executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
@@ -119,22 +110,17 @@ public class ArticleProcessor {
                 long elapsedTimeInSeconds = TimeUnit.SECONDS.convert(elapsedTime, TimeUnit.NANOSECONDS);
                 String ramEnv = System.getenv("RAM");
                 int RAM = (ramEnv != null) ? Integer.parseInt(ramEnv) : -1;
-                log.info("[Java] Results -> { \"team\": \"MailleAdvDaBa\", \"N\": " + MAX_NODE +
+                log.info("[Java] { \"team\": \"MailleAdvDaBa\", \"N\": " + MAX_NODE +
                         ", \"RAM\": " + RAM + ", \"seconds\": " + elapsedTimeInSeconds + " }");
+                log.info("[Java] Created " + totalArticles + " articles nodes");
             }
         } catch (IOException e) {
             log.severe(e.getMessage());
         }
-        log.info("[Java] Now sleeping endlessly...");
 
-        while(true) {
-            TimeUnit.SECONDS.sleep(10);
-        }
     }
 
-
-
-    private Map<String, Object> processBatch(List<Article> batch) {
+    private Map<String, Object> convertListToMap(List<Article> batch) {
         List<Map<String, Object>> articlesMap = batch.stream()
                 .map(Article::toMap)
                 .collect(Collectors.toList());

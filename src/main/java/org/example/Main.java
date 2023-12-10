@@ -2,6 +2,7 @@ package org.example;
 
 import org.neo4j.driver.Driver;
 
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 public class Main {
@@ -40,13 +41,18 @@ public class Main {
         log.info("[Java] Parameters provided : Batch size is " + BATCH_SIZE + " and max node is " + MAX_NODE);
 
         // STEP 3 : Insert all nodes into database
-        ArticleProcessor articleProcessor = new ArticleProcessor(BATCH_SIZE, MAX_NODE, driver);
-        articleProcessor.processArticles();
+        Processor processor = new Processor(BATCH_SIZE, MAX_NODE, driver);
+        processor.run();
 
         log.info("[Java] Insertion to database done");
 
         driver.close();
-        log.info("[Java] Program finished");
-    }
 
+        log.info("[Java] Program finished");
+        log.info("[Java] Now sleeping endlessly...");
+
+        while(true) {
+            TimeUnit.SECONDS.sleep(10);
+        }
+    }
 }

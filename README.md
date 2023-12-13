@@ -10,13 +10,16 @@ The goal of this laboratory is to process a 18Go JSON file and to create nodes a
 
 ## Content
 
-The language used for the application is Java (version 11) and is also working with Maven, in order to work with dependencies / librairies.
+The language used for the application is Java (version 11) and is also working with Maven, in order to work with dependencies / librairies. Therefore, you will need to run the command `mvn clean install` in order to get those dependencies.
 
-Since the goal of this laboratory is to process with little memory, it is obvious that it will not be possible to keep 18Go in memory. Therefore, we need to work with Streaming.
+Since the goal of this laboratory is to process with little memory, it is obvious that it will not be possible to keep 18Go in memory. Therefore, we need to work with streaming. This is possible with GSON
 
-This program is also working by batches, you will be able to set the value in the `docker-compose.yaml` as an environment variable
+This program is also working by batches, you will be able to set the value in the `docker-compose.yaml` as an environment variable. Because of the restriction of the memory, we parse JSON objects into Article objects and insert them into the database.
+When the number of Article has reached the value of the batch size, threads will take over and the list will be cleared in order to store the next articles.
 
-In order to increase the performance, we can use constraints to speed up the process, especially when IDs are supposed to be unique. This also allow to remove any duplicates while merging nodes :
+In order to increase the performance, as briefly mentionned, threads allowed to parallelize the queries but also this come with issues, concurrency and deadlocks. 
+
+we can use constraints to speed up the process, especially when IDs are supposed to be unique. This also allow to remove any duplicates while merging nodes :
 
 ```java
 tx.run("CREATE CONSTRAINT FOR (a:Article) REQUIRE a._id IS UNIQUE");
@@ -29,25 +32,22 @@ Source : [StackOverFlow](https://stackoverflow.com/questions/29657461/big-data-i
 
 ## Results
 
-Results -> { "team": "MailleAdvDaBa", "N": 10000, "RAM": 3000, "seconds": 11 } (Batch = 500)
+{ "team": "MailleAdvDaBa", "N": 1000, "RAM": 3000, "seconds": 4 } (Batch = 100)
 
-Results -> { "team": "MailleAdvDaBa", "N": 10000, "RAM": 3000, "seconds": 12 } (Batch = 1000)
+{ "team": "MailleAdvDaBa", "N": 10000, "RAM": 3000, "seconds": 11 } (Batch = 500)
 
-Results -> { "team": "MailleAdvDaBa", "N": 20000, "RAM": 3000, "seconds": 13 } (Batch = 2000)
+{ "team": "MailleAdvDaBa", "N": 10000, "RAM": 3000, "seconds": 11 } (Batch = 1000)
 
-Results -> { "team": "MailleAdvDaBa", "N": 30000, "RAM": 3000, "seconds": 15 } (Batch = 3000)
+{ "team": "MailleAdvDaBa", "N": 20000, "RAM": 3000, "seconds": 14 } (Batch = 2000)
 
-Results -> { "team": "MailleAdvDaBa", "N": 50000, "RAM": 3000, "seconds": 37 } (Batch = 5000)
+{ "team": "MailleAdvDaBa", "N": 30000, "RAM": 3000, "seconds": 21 } (Batch = 3000)
 
-Results -> { "team": "MailleAdvDaBa", "N": 100000, "RAM": 3000, "seconds": 74 } (Batch = 5000)
+{ "team": "MailleAdvDaBa", "N": 50000, "RAM": 3000, "seconds": 52 } (Batch = 5000)
 
-Results -> { "team": "MailleAdvDaBa", "N": 100000, "RAM": 3000, "seconds": 70 } (Batch = 10000)
+{ "team": "MailleAdvDaBa", "N": 100000, "RAM": 3000, "seconds": 79 } (Batch = 10000)
 
-Results -> { "team": "MailleAdvDaBa", "N": 500000, "RAM": 3000, "seconds": 355 } (Batch = 10000)
+{ "team": "MailleAdvDaBa", "N": 1000000, "RAM": 3000, "seconds": 867 } (Batch = 10000)
 
-Results -> { "team": "MailleAdvDaBa", "N": 1000000, "RAM": 3000, "seconds": 823 } (Batch = 10000)
-
-Results -> { "team": "MailleAdvDaBa", "N": 10000000, "RAM": 3000, "seconds": 5111 } (Batch = 10000)
 
 ## Run with Docker
 

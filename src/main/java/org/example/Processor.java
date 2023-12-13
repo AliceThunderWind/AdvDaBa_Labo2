@@ -65,8 +65,8 @@ public class Processor {
             URL jsonUrl = new URL("http://vmrum.isc.heia-fr.ch/dblpv13.json");
             //URL jsonUrl = new URL("http://vmrum.isc.heia-fr.ch/biggertest.json"); // Uncomment this line to use the lighter JSON
             URLConnection connection = jsonUrl.openConnection();
-            connection.setConnectTimeout(60000);
-            connection.setReadTimeout(60000);
+            connection.setConnectTimeout(1000 * 60);
+            connection.setReadTimeout(1000 * 60);
             try (JsonReader jsonReader = new JsonReader(new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8))) {
                 jsonReader.setLenient(true);
                 Gson gson = new GsonBuilder().create();
@@ -76,8 +76,8 @@ public class Processor {
 
                 while (jsonReader.hasNext() && totalArticles < MAX_NODE) {
                     try {
-                        Article article = gson.fromJson(jsonReader, Article.class);
-                        //Article article = ArticleFactory.createArticle(jsonReader); // Uncomment to use the factory (needed for NumberInt parsing)
+                        //Article article = gson.fromJson(jsonReader, Article.class); // Uncomment this to use fromJson()
+                        Article article = ArticleFactory.createArticle(jsonReader);
 
                         articlesBatch.add(article);
                         ++totalArticles;
@@ -117,7 +117,6 @@ public class Processor {
         } catch (IOException e) {
             log.severe(e.getMessage());
         }
-
     }
 
     private Map<String, Object> convertListToMap(List<Article> batch) {

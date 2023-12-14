@@ -65,8 +65,8 @@ public class Processor {
             URL jsonUrl = new URL("http://vmrum.isc.heia-fr.ch/dblpv13.json");
             //URL jsonUrl = new URL("http://vmrum.isc.heia-fr.ch/biggertest.json"); // Uncomment this line to use the lighter JSON
             URLConnection connection = jsonUrl.openConnection();
-            connection.setConnectTimeout(1000 * 60);
-            connection.setReadTimeout(1000 * 60);
+            connection.setConnectTimeout(1000 * 7200);
+            connection.setReadTimeout(1000 * 7200);
             try (JsonReader jsonReader = new JsonReader(new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8))) {
                 jsonReader.setLenient(true);
                 Gson gson = new GsonBuilder().create();
@@ -118,6 +118,7 @@ public class Processor {
         }
     }
 
+    // https://neo4j.com/docs/java-reference/current/java-embedded/query-parameters/
     private Map<String, Object> convertListToMap(List<Article> batch) {
         List<Map<String, Object>> articlesMap = batch.stream()
                 .map(Article::toMap)

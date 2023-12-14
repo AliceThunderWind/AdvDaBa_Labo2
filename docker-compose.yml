@@ -23,8 +23,8 @@ services:
     networks:
       - internal
     environment:
-      - BATCH_SIZE=5000
-      - MAX_NODE=50000
+      - BATCH_SIZE=1000
+      - MAX_NODE=10000
       - NEO4J_IP=10.5.0.5
       - RAM=3000 # Needs to be the same as memory in Neo4j (db container)
     deploy:

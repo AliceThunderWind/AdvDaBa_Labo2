@@ -25,6 +25,7 @@ spec:
         resources:
           limits:
             memory: "3Gi"
+            cpu: "3"
         env:
         - name: NEO4J_AUTH
           value: neo4j/testtest
@@ -75,3 +76,4 @@ spec:
         resources:
           limits:
             memory: "3Gi"
+            cpu: "3"

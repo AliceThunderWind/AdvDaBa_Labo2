@@ -28,6 +28,9 @@ class RunnableWorker implements Runnable {
             while (retries <= maxRetries) {
                 try {
                     session.writeTransaction(tx -> {
+
+                        // Doing in three separate queries
+                        // Performance tests : { "team": "MailleAdvDaBa", "N": 10000, "RAM": 3000, "seconds": 11 } (Batch = 1000)
                         tx.run(new Query(
                                 "UNWIND $articles as article " +
                                         "WITH article " +
@@ -62,6 +65,28 @@ class RunnableWorker implements Runnable {
                                         "MERGE (arti1)-[:CITES]->(arti2)",
                                 map)
                         );
+
+                        // Doing in one query seems slower
+                        // Performance tests showed : { "team": "MailleAdvDaBa", "N": 10000, "RAM": 3000, "seconds": 60 } (Batch = 1000)
+                        /*
+                        tx.run(new Query(
+                                "UNWIND $articles as article " +
+                                        "WITH article " +
+                                        "MERGE (arti:Article {_id: article._id}) " +
+                                        "ON CREATE SET arti.title = article.title " +
+                                        "ON MATCH SET arti.title = COALESCE(article.title, arti.title) " +
+                                        "WITH arti, article.authors as authors, article.references as references " +
+                                        "UNWIND authors as author " +
+                                        "MERGE (auth:Author {_id: author._id}) " +
+                                        "ON CREATE SET auth.name = author.name " +
+                                        "ON MATCH SET auth.name = author.name " +
+                                        "MERGE (auth)-[:AUTHORED]->(arti) " +
+                                        "WITH arti, references " +
+                                        "UNWIND references AS reference " +
+                                        "MERGE (arti2:Article {_id: reference}) " +
+                                        "MERGE (arti)-[:CITES]->(arti2)",
+                                map
+                        ));*/
 
                         // Based from https://neo4j.com/developer/graph-data-science/link-prediction/graph-data-science-library/#citation-graph
                         // but seems slower than queries above

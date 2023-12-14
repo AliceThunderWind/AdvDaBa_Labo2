@@ -6,7 +6,6 @@ metadata:
     app: neo4j
     component: neo4j
 spec:
-  restartPolicy: Never
   containers:
   - name: neo4j
     image: neo4j
@@ -42,7 +41,6 @@ metadata:
     app: advdaba-app
     component: advdaba-app
 spec:
-  restartPolicy: Never
   containers:
   - name: advdaba-app
     image: alicethunderwind/advdaba_app:latest

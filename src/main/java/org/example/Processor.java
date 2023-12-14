@@ -112,7 +112,6 @@ public class Processor {
                 int RAM = (ramEnv != null) ? Integer.parseInt(ramEnv) : -1;
                 log.info("[Java] { \"team\": \"MailleAdvDaBa\", \"N\": " + MAX_NODE +
                         ", \"RAM\": " + RAM + ", \"seconds\": " + elapsedTimeInSeconds + " }");
-                log.info("[Java] Created " + totalArticles + " articles nodes");
             }
         } catch (IOException e) {
             log.severe(e.getMessage());

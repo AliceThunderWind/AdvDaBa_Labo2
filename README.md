@@ -7,7 +7,7 @@
 ## Table of content
 
 * [Introduction](#introduction)
-* [Content](#content)
+* [Approach](#approach)
 * [Results](#results)
 * [How to use the program ?](#how-to-use-the-program-)
     + [Run the Java application](#run-the-java-application)
@@ -18,11 +18,15 @@
 
 The goal of this laboratory is to process a 18Go JSON file and to create nodes and relationships in Neo4j, without scaling-up too much the environment loading the data and in a decent short amount of time.
 
-## Content
+## Approach
 
-The language used for the application is Java (version 11) and is also working with Maven, in order to work with dependencies / librairies. Therefore, you will need to run the command `mvn clean install` in order to get those dependencies.
+In this project, two containers are created: one is dedicated to the database Neo4J, and the other is the application that was developped. It is using the image Maven and will compile and run the application.
 
-Since the goal of this laboratory is to process with little memory, it is obvious that it will not be possible to keep 18Go in memory. Therefore, we need to work with streaming. This is possible with GSON where JSONReader
+Speaking of which, the language used for the application is Java (version 11) and is working with Maven, in order to work with dependencies / librairies such as GSON and Neo4j driver. Therefore, you will need to run the command `mvn clean install` in order to get those dependencies.
+
+Since the goal of this laboratory is to process with little memory, it is obvious that it will not be possible to have 18Go in memory. Therefore, we need to work with streaming. This is possible with GSON which is known for its great performances on large files.
+
+Source : [Process large JSON with limited memory](https://dev.to/franzwong/process-large-json-with-limited-memory-12kb)
 
 Moreover, this program should be able to work on a Kubernetes environment, that means without any volume. In the first approach, the `dblpv13.json` was part of a volume within the Java container and read as InputStream. This was replaced by an URL as follow :
 
@@ -30,13 +34,13 @@ Moreover, this program should be able to work on a Kubernetes environment, that 
 URL jsonUrl = new URL("http://vmrum.isc.heia-fr.ch/dblpv13.json");
 ```
 
-This program is also working by batches, you will be able to set the value in the `docker-compose.yaml` as an environment variable. Because of the restriction of the memory, we parse one by one JSON objects into Article objects and insert them into a list of size `BATCH_SIZE`. When the number of Article has reached the maximum size of the list, threads will take over and the list will be cleared in order to store the next articles.
+This program is also working by batches, you will be able to set the value in the `docker-compose.yaml` as an environment variable or in the `pods.yaml` if you are working with Kubernetes. Because of the restriction of the memory, we parse one by one JSON objects into Article objects using the `ArticleFactory` class and insert them into a list of size `BATCH_SIZE`. When the number of Article has reached the maximum size of the list, threads will take over and the list will be cleared in order to store the next articles.
 
-Regarding the parsing, since it was asked in the laboratory to create Article nodes with `_id` and `title` attributes and Author nodes with `_id` and `name`, only those fields were used in the `ArticleFactory` class and any malformed field (like `NumberInt`) was ignored. However, if we were to add the other fields, we could easily add them in the switch case and perform any. Otherwise, if the file was correctly made, we could use the `Gson.fromJson()` method that replace the whole factory with one single line of code.
+Regarding the parsing, since it was asked in the laboratory to create Article nodes with `_id` and `title` attributes and Author nodes with `_id` and `name`, only those fields were used in the `ArticleFactory` class and any malformed field (like `NumberInt`) was ignored. However, if we were to add the other fields, we could easily add them in the switch case and perform any transformation. Otherwise, if the file was correctly made, we could use the `Gson.fromJson()` method that replaces the whole factory with one single line of code.
 
-The main goal of the process was also to process the whole file while reducing the time complexity. That means that we create nodes and relationship in one go. That mostly concerns the relationship `[:CITES]` where references contain the ID of Article. Even if the article doesn't exist, we still create the node with only the ID and later, we add the title using `ON UPDATE SET article.name = 'name'`. That prevents to create all Article nodes and then all relashionship associated.
+The main goal of the process was also to process the whole file while reducing the time complexity. That means that we create nodes and relationship in one go. That mostly concerns the relationship `[:CITES]` where references contain the ID of an article. Even if the article doesn't exist, we still create the node with only the ID and later, we add the title using `ON UPDATE SET article.name = 'name'`. That prevents creating all Article nodes and only then all relashionship associated.
 
-In order to increase the performance, as briefly mentionned, threads allowed to parallelize the queries but also come with issues, such as concurrency and deadlocks. In order to solve that problem, a retryer has been implemented. If a deadlock occurs, the thread will wait for a few second before retrying the transaction. A limit of retry was also set.
+In order to increase the performance, as briefly mentionned, threads allowed to parallelize the queries but also come with issues, such as concurrency and deadlocks. In order to solve that problem, a retryer has been implemented. If a deadlock occurs, the thread will wait for a few seconds before retrying the transaction. A limit of retry was also set.
 
 We can use also constraints to speed up the process because they also act as indexes. IDs are supposed to be unique, therefore these constraints prevent any duplicates while merging (creating) nodes :
 
@@ -126,3 +130,8 @@ A `deploy.yaml` is also present in this repository and you can use it with the c
 kubectl create -f deploy.yaml -n adv-da-ba23-1
 ```
 
+Finally, if you want to check the logs, you can either use the interface, on the `advdaba-app` pods, and click on "View Logs", or you can use the command :
+
+```bash
+kubectl logs advdaba-app -n adv-da-ba23-1
+```

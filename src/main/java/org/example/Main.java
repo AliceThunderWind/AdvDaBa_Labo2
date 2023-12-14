@@ -52,7 +52,11 @@ public class Main {
         log.info("[Java] Now sleeping endlessly...");
 
         while(true) {
-            TimeUnit.SECONDS.sleep(10);
+            try {
+                Thread.sleep(TimeUnit.HOURS.toMillis(2));
+            } catch (Exception e) {
+                log.severe("[Java] Error occured during sleep : " + e.getMessage());
+            }
         }
     }
 }

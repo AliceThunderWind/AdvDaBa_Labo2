@@ -48,7 +48,7 @@ spec:
       name: app
     env:
       - name: BATCH_SIZE
-        value: "20000"
+        value: "5000"
       - name: MAX_NODE
         value: "6000000"
       - name: NEO4J_IP

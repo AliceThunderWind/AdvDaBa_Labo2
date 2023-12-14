@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: neo4j
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: neo4j
+  template:
+    metadata:
+      name: neo4j
+      labels:
+        app: neo4j
+        component: neo4j
+    spec:
+      containers:
+      - name: neo4j
+        image: neo4j
+        ports:
+        - containerPort: 7474
+          name: http
+        - containerPort: 7687
+          name: bolt
+        resources:
+          limits:
+            memory: "3Gi"
+        env:
+        - name: NEO4J_AUTH
+          value: neo4j/testtest
+        - name: NEO4J_server_config_strict__validation_enabled
+          value: "false"
+        - name: NEO4J_server_memory_heap_initial__size
+          value: 1G
+        - name: NEO4J_server_memory_heap_max__size
+          value: 2G
+        - name: NEO4J_server_memory_pagecache_size
+          value: 1G
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: advdaba-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: advdaba-app
+  template:
+    metadata:
+      name: advdaba-app
+      labels:
+        app: advdaba-app
+        component: advdaba-app
+    spec:
+      containers:
+      - name: advdaba-app
+        image: alicethunderwind/advdaba_app:latest
+        ports:
+        - containerPort: 8080
+          name: app
+        env:
+        - name: BATCH_SIZE
+          value: "5000"
+        - name: MAX_NODE
+          value: "6000000"
+        - name: NEO4J_IP
+          value: neo4j-svc
+        - name: MAVEN_OPTS
+          value: "-Xmx3g"
+        - name: RAM
+          value: "3000" # Needs to be the same as memory in Neo4j
+        resources:
+          limits:
+            memory: "3Gi"
